@@ -173,7 +173,7 @@ def main():
     # Print statistics
     print(f"\nFinal Statistics:")
     print(f"Total cost: {total_cost}")
-    print(f"Number of cities visited: {len(tour)}")
+    print(f"Number of cities visited: {len(tour)-1}")
     print(f"Number of cities skipped: {len(unvisited)}")
     print(f"Tour: {tour}")
     end_time = time.time()*1000

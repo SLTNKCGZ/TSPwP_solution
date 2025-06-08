@@ -3,6 +3,7 @@ from typing import List, Tuple, Set, Dict
 from collections import defaultdict
 import time
 
+
 def euclidean_distance(p1, p2):
     return round(math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2))
 
@@ -17,7 +18,8 @@ def create_distance_matrix(cities: List[Tuple[int, float, float]], penalty: int)
     
     # Track two smallest distances for each city
     city_two_smallest = defaultdict(lambda: [float('inf'), float('inf')])
-    
+    two_cities_1=0
+    two_cities_2=0
     # Single pass to collect distances and find best starting city
     for i in range(n):
         city1_id, x1, y1 = cities[i]
@@ -50,67 +52,76 @@ def create_distance_matrix(cities: List[Tuple[int, float, float]], penalty: int)
                     if city_two_smallest[city_id][1] != float('inf'):
                         two_nearest_sum = city_two_smallest[city_id][0] + city_two_smallest[city_id][1]
                         if two_nearest_sum < min_two_nearest_sum:
+                            two_cities_1 =city_two_smallest[city_id][0]
+                            two_cities_2=city_two_smallest[city_id][1]
                             min_two_nearest_sum = two_nearest_sum
                             best_start_city = city_id
-    
+    print(f"two_cities_1:{two_cities_1},two_cities_2:{two_cities_2}")                        
+    for city_id in nearest_neighbors:
+        nearest_neighbors[city_id].sort(key=lambda x: x[1])
     return matrix, nearest_neighbors, best_start_city
 
 def create_optimized_tour(cities: List[Tuple[int, float, float]], penalty: int, distance_matrix: Dict[int, Dict[int, int]], nearest_neighbors: Dict[int, List[Tuple[int, int]]], start_city: int) -> Tuple[List[int], int, List[int]]:
     """Create an optimized tour using a greedy approach"""
     n = len(cities)
     if n <= 1:
+        print("1 sayılı")
         return [cities[0][0]], 0, []
     
     # Initialize tour and remaining cities
     tour = [start_city]
     unvisited = set(city[0] for city in cities) - {start_city}
     total_cost = 0
+    last_cost = 0  # Track the cost of the last move
     
-    while unvisited:
+    while True:  # Continue until we return to start city
         current_city = tour[-1]
         best_city = None
         best_cost = float('inf')
         
-        # Sort neighbors only when needed
-        if not nearest_neighbors[current_city]:
-            nearest_neighbors[current_city].sort(key=lambda x: x[1])
-        
-        # Try nearest neighbors in order
+        # Try nearest neighbors first (they are already sorted by distance)
         for next_city, dist in nearest_neighbors[current_city]:
-            if next_city in unvisited:
-                # Check if this city can reach the start city
-                can_reach_start = False
-                if start_city in distance_matrix[next_city]:
-                    can_reach_start = distance_matrix[next_city][start_city] < penalty
-                
-                # If this is the last city to visit, it must be able to reach start
-                if len(unvisited) == 1 and not can_reach_start:
-                    continue
-                
+            if(next_city==start_city):
+                best_city=next_city
+                best_cost = dist
+            elif next_city in unvisited and dist > 0:
                 best_city = next_city
                 best_cost = dist
-                break  # Take the first unvisited neighbor
+                break  # Take the first valid neighbor since they are sorted
+        print(tour)    
+        print(nearest_neighbors[current_city])
         
-        # If no neighbor found, backtrack
+        # If no valid city found
         if best_city is None:
+            # If we're at start city and no neighbors, we're done
+            if current_city == start_city:
+                break
+            # Otherwise, backtrack to previous city
             if len(tour) > 1:
-                tour.pop()  # Remove current city
+                # Remove current city and subtract its cost
+                last_city = tour.pop()
+                total_cost -= last_cost
+                unvisited.add(last_city)
+                # Remove the last city from the neighbors of the previous city
+                if tour[-1] in nearest_neighbors:
+                    nearest_neighbors[tour[-1]] = [n for n in nearest_neighbors[tour[-1]] if n[0] != last_city]
                 continue
             else:
                 break  # If we're back at start and no neighbors, we're done
         
         # Add best city to tour
         tour.append(best_city)
-        unvisited.remove(best_city)
+        if best_city != start_city:
+            unvisited.remove(best_city)
+        last_cost = best_cost  # Save the cost of this move
         total_cost += best_cost
-    
-    # If tour doesn't end at start, try to return
-    if tour[-1] != start_city:
-        if start_city in distance_matrix[tour[-1]]:
-            return_dist = distance_matrix[tour[-1]][start_city]
-            if return_dist < penalty:
-                tour.append(start_city)
-                total_cost += return_dist
+        
+        # If we reached the start city, we're done
+        if best_city == start_city:
+            break
+        
+        # Print the current tour and cost
+        #print(f"Current tour: {tour}, Cost so far: {total_cost}")
     
     # Add penalties for unvisited cities
     penalty_cost = len(unvisited) * penalty
@@ -144,7 +155,7 @@ def write_solution_to_file(filename: str, tour: List[int], total_cost: int):
 def main():
     start_time = time.time()*1000
     # Read input
-    penalty, cities = read_input("input_3.txt")
+    penalty, cities = read_input("input_1.txt")
     
     # Create distance matrix and find best starting city
     distance_matrix, nearest_neighbors, best_start = create_distance_matrix(cities, penalty)
@@ -153,21 +164,20 @@ def main():
     tour, total_cost, unvisited = create_optimized_tour(cities, penalty, distance_matrix, nearest_neighbors, best_start)
     
     # Write solution
-    with open("output_3.txt", "w") as f:
+    with open("output_1.txt", "w") as f:
         f.write(f"{total_cost}\n")
         f.write(f"{len(tour)}\n")
         f.write(" ".join(map(str, tour)) + "\n")
         f.write(f"{len(unvisited)}\n")
-        if unvisited:
-            f.write(" ".join(map(str, unvisited)) + "\n")
     
     # Print statistics
+    print(f"\nFinal Statistics:")
     print(f"Total cost: {total_cost}")
-    print(f"Number of cities visited: {len(cities) - len(unvisited)}")
+    print(f"Number of cities visited: {len(tour)}")
     print(f"Number of cities skipped: {len(unvisited)}")
-    print(f"tour başlangıç ve bitiş noktaları:{tour[0],tour[-1]}")
+    print(f"Tour: {tour}")
     end_time = time.time()*1000
-    print(f"İşlem süresi: {end_time - start_time:.2f} milliseconds") 
+    print(f"Execution time: {end_time - start_time:.2f} milliseconds")
 
 if __name__ == "__main__":
     main()

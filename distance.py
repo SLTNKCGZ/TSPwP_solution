@@ -245,16 +245,16 @@ def write_output(filename: str, tour: List[int], cost: int, all_cities: Set[int]
     skipped = list(all_cities - visited)
     
     with open(filename, 'w') as f:
-        f.write(f"{cost}\n")
-        f.write(f"{len(tour)}\n")
-        f.write(" ".join(map(str, tour)) + "\n")
-        f.write(f"{len(skipped)}\n")
+        f.write(f"{cost} {len(tour)} \n")
+        for city in tour:
+            f.write(f"{city}\n")
+        f.write(" ")
 
 
 def main():
     start_time = time.time()
     
-    penalty, cities = read_input("input_1.txt")
+    penalty, cities = read_input("input_3.txt")
     city_ids = [city[0] for city in cities]
     all_cities = set(city_ids)
     
@@ -270,11 +270,12 @@ def main():
     optimized_tour, optimized_cost = hybrid_optimization(
         improved_tour, distance_matrix, penalty, all_cities
     )
-    
-    write_output("output_1.txt", optimized_tour, optimized_cost, all_cities)
+    optimized_tour.pop()
+    write_output("output_3.txt", optimized_tour, optimized_cost, all_cities)
     
     print(f"Toplam Maliyet: {optimized_cost}")
     print(f"Çalışma Süresi: {time.time() - start_time:.2f} saniye")
+    print(f"Tour:{optimized_tour}")
 
 
 if __name__ == "__main__":

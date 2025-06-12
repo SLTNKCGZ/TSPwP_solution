@@ -127,5 +127,5 @@ def checksolution(cities,penalty,solution):
         checkduplicate(cityorder)
         checktourInfo(cities, penalty,tour_length_wP,citycount,cityorder)
     
-main('input_3.txt','output_3.txt')
+main('test-input-4.txt','test-output-4.txt')
 
